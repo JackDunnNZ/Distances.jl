@@ -78,8 +78,8 @@ end
 ###########################################################
 
 function sqrt!(a::AbstractArray)
-    @simd for i in eachindex(a)
-        @inbounds a[i] = sqrt(a[i])
+    for i in eachindex(a)
+        a[i] = sqrt(a[i])
     end
     a
 end
@@ -87,7 +87,7 @@ end
 function norm_percol(a::AbstractMatrix{T}) where {T}
     n = size(a, 2)
     r = Vector{float(T)}(undef, n)
-    @simd for j in 1:n
+    for j in 1:n
         aj = view(a, :, j)
         r[j] = sqrt(dot(aj, aj))
     end
@@ -102,8 +102,8 @@ function wsumsq_percol(w::AbstractArray, a::AbstractMatrix)
     for j = 1:n
         aj = view(a, :, j)
         s = zero(T)
-        @simd for i = 1:m
-            @inbounds s += w[i] * abs2(aj[i])
+        for i = 1:m
+            s += w[i] * abs2(aj[i])
         end
         r[j] = s
     end

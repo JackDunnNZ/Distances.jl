@@ -59,7 +59,7 @@ function colwise!(r::AbstractArray, metric::PreMetric, a, b)
     n = length(a)
     length(b) == n || throw(DimensionMismatch("iterators have different lengths"))
     length(r) == n || throw(DimensionMismatch("Incorrect size of r."))
-    @inbounds for (j, ab) in enumerate(zip(a, b))
+    for (j, ab) in enumerate(zip(a, b))
         r[j] = metric(ab...)
     end
     r
@@ -69,7 +69,7 @@ function colwise!(r::AbstractArray, metric::PreMetric, a::AbstractVector, b::Abs
     require_one_based_indexing(r)
     n = size(b, 2)
     length(r) == n || throw(DimensionMismatch("Incorrect size of r."))
-    @inbounds for (rj, bj) in enumerate(axes(b, 2))
+    for (rj, bj) in enumerate(axes(b, 2))
         r[rj] = metric(a, view(b, :, bj))
     end
     r
@@ -79,7 +79,7 @@ function colwise!(r::AbstractArray, metric::PreMetric, a::AbstractMatrix, b::Abs
     require_one_based_indexing(r)
     n = size(a, 2)
     length(r) == n || throw(DimensionMismatch("Incorrect size of r."))
-    @inbounds for (rj, aj) in enumerate(axes(a, 2))
+    for (rj, aj) in enumerate(axes(a, 2))
         r[rj] = metric(view(a, :, aj), b)
     end
     r
@@ -109,7 +109,7 @@ function colwise!(r::AbstractArray, metric::PreMetric, a::AbstractMatrix, b::Abs
     require_one_based_indexing(r, a, b)
     n = get_common_ncols(a, b)
     length(r) == n || throw(DimensionMismatch("Incorrect size of r."))
-    @inbounds for j in 1:n
+    for j in 1:n
         r[j] = metric(view(a, :, j), view(b, :, j))
     end
     r
@@ -171,7 +171,7 @@ function _pairwise!(r::AbstractMatrix, metric::PreMetric, a, b=a)
     na = length(a)
     nb = length(b)
     size(r) == (na, nb) || throw(DimensionMismatch("Incorrect size of r."))
-    @inbounds for (j, bj) in enumerate(b), (i, ai) in enumerate(a)
+    for (j, bj) in enumerate(b), (i, ai) in enumerate(a)
         r[i, j] = metric(ai, bj)
     end
     r
@@ -183,7 +183,7 @@ function _pairwise!(r::AbstractMatrix, metric::PreMetric,
     na = size(a, 2)
     nb = size(b, 2)
     size(r) == (na, nb) || throw(DimensionMismatch("Incorrect size of r."))
-    @inbounds for j = 1:size(b, 2)
+    for j = 1:size(b, 2)
         bj = view(b, :, j)
         for i = 1:size(a, 2)
             r[i, j] = metric(view(a, :, i), bj)
@@ -196,7 +196,7 @@ function _pairwise!(r::AbstractMatrix, metric::SemiMetric, a)
     require_one_based_indexing(r)
     n = length(a)
     size(r) == (n, n) || throw(DimensionMismatch("Incorrect size of r."))
-    @inbounds for (j, aj) in enumerate(a), (i, ai) in enumerate(a)
+    for (j, aj) in enumerate(a), (i, ai) in enumerate(a)
         r[i, j] = if i > j
             metric(ai, aj)
         elseif i == j
@@ -212,7 +212,7 @@ function _pairwise!(r::AbstractMatrix, metric::SemiMetric, a::AbstractMatrix)
     require_one_based_indexing(r)
     n = size(a, 2)
     size(r) == (n, n) || throw(DimensionMismatch("Incorrect size of r."))
-    @inbounds for j = 1:n
+    for j = 1:n
         for i = 1:(j - 1)
             r[i, j] = r[j, i]   # leveraging the symmetry of SemiMetric
         end

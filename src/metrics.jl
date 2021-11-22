@@ -234,7 +234,7 @@ Base.@propagate_inbounds function _evaluate(d::UnionMetrics, a, b, ::Nothing)
         return zero(result_type(d, a, b))
     end
     s = eval_start(d, a, b)
-    @inbounds for (ai, bi) in zip(a, b)
+    for (ai, bi) in zip(a, b)
         s = eval_reduce(d, s, eval_op(d, ai, bi))
     end
     return eval_end(d, s)
@@ -246,10 +246,10 @@ Base.@propagate_inbounds function _evaluate(d::UnionMetrics, a::AbstractArray, b
     if length(a) == 0
         return zero(result_type(d, a, b))
     end
-    @inbounds begin
+    begin
         s = eval_start(d, a, b)
         if (IndexStyle(a, b) === IndexLinear() && eachindex(a) == eachindex(b)) || axes(a) == axes(b)
-            @simd for I in eachindex(a, b)
+            for I in eachindex(a, b)
                 ai = a[I]
                 bi = b[I]
                 s = eval_reduce(d, s, eval_op(d, ai, bi))
@@ -274,7 +274,7 @@ Base.@propagate_inbounds function _evaluate(d::UnionMetrics, a, b, p)
         return zero(result_type(d, a, b))
     end
     s = eval_start(d, a, b)
-    @inbounds for (ai, bi, pi) in zip(a, b, p)
+    for (ai, bi, pi) in zip(a, b, p)
         s = eval_reduce(d, s, eval_op(d, ai, bi, pi))
     end
     return eval_end(d, s)
@@ -289,11 +289,11 @@ Base.@propagate_inbounds function _evaluate(d::UnionMetrics, a::AbstractArray, b
     if length(a) == 0
         return zero(result_type(d, a, b))
     end
-    @inbounds begin
+    begin
         s = eval_start(d, a, b)
         if (IndexStyle(a, b, p) === IndexLinear() && eachindex(a) == eachindex(b) == eachindex(p)) ||
                 axes(a) == axes(b) == axes(p)
-            @simd for I in eachindex(a, b, p)
+            for I in eachindex(a, b, p)
                 ai = a[I]
                 bi = b[I]
                 pi = p[I]
@@ -325,21 +325,21 @@ eval_reduce(::UnionMetrics, s1, s2) = s1 + s2
 eval_end(::UnionMetrics, s) = s
 
 for M in (metrics..., weightedmetrics...)
-    @eval @inline (dist::$M)(a, b) = _evaluate(dist, a, b, parameters(dist))
+    @eval (dist::$M)(a, b) = _evaluate(dist, a, b, parameters(dist))
 end
 
 # Euclidean
-@inline eval_op(::Euclidean, ai, bi) = abs2(ai - bi)
+eval_op(::Euclidean, ai, bi) = abs2(ai - bi)
 eval_end(::Euclidean, s) = sqrt(s)
 const euclidean = Euclidean()
 
 # Weighted Euclidean
-@inline eval_op(::WeightedEuclidean, ai, bi, wi) = abs2(ai - bi) * wi
+eval_op(::WeightedEuclidean, ai, bi, wi) = abs2(ai - bi) * wi
 eval_end(::WeightedEuclidean, s) = sqrt(s)
 weuclidean(a, b, w) = WeightedEuclidean(w)(a, b)
 
 # PeriodicEuclidean
-@inline function eval_op(::PeriodicEuclidean, ai, bi, p)
+function eval_op(::PeriodicEuclidean, ai, bi, p)
     s1 = abs(ai - bi)
     s2 = mod(s1, p)
     s3 = min(s2, p - s2)
@@ -349,58 +349,58 @@ eval_end(::PeriodicEuclidean, s) = sqrt(s)
 peuclidean(a, b, p) = PeriodicEuclidean(p)(a, b)
 
 # SqEuclidean
-@inline eval_op(::SqEuclidean, ai, bi) = abs2(ai - bi)
+eval_op(::SqEuclidean, ai, bi) = abs2(ai - bi)
 const sqeuclidean = SqEuclidean()
 
 # Weighted Squared Euclidean
-@inline eval_op(::WeightedSqEuclidean, ai, bi, wi) = abs2(ai - bi) * wi
+eval_op(::WeightedSqEuclidean, ai, bi, wi) = abs2(ai - bi) * wi
 wsqeuclidean(a, b, w) = WeightedSqEuclidean(w)(a, b)
 
 # Cityblock
-@inline eval_op(::Cityblock, ai, bi) = abs(ai - bi)
+eval_op(::Cityblock, ai, bi) = abs(ai - bi)
 const cityblock = Cityblock()
 
 # Weighted City Block
-@inline eval_op(::WeightedCityblock, ai, bi, wi) = abs((ai - bi) * wi)
+eval_op(::WeightedCityblock, ai, bi, wi) = abs((ai - bi) * wi)
 wcityblock(a, b, w) = WeightedCityblock(w)(a, b)
 
 # Total variation
-@inline eval_op(::TotalVariation, ai, bi) = abs(ai - bi)
+eval_op(::TotalVariation, ai, bi) = abs(ai - bi)
 eval_end(::TotalVariation, s) = s / 2
 const totalvariation = TotalVariation()
 
 # Chebyshev
-@inline eval_op(::Chebyshev, ai, bi) = abs(ai - bi)
-@inline eval_reduce(::Chebyshev, s1, s2) = max(s1, s2)
+eval_op(::Chebyshev, ai, bi) = abs(ai - bi)
+eval_reduce(::Chebyshev, s1, s2) = max(s1, s2)
 # if only NaN, will output NaN
 Base.@propagate_inbounds eval_start(::Chebyshev, a, b) = abs(first(a) - first(b))
 const chebyshev = Chebyshev()
 
 # Minkowski
-@inline eval_op(dist::Minkowski, ai, bi) = abs(ai - bi)^dist.p
-@inline eval_end(dist::Minkowski, s) = s^(1 / dist.p)
+eval_op(dist::Minkowski, ai, bi) = abs(ai - bi)^dist.p
+eval_end(dist::Minkowski, s) = s^(1 / dist.p)
 minkowski(a, b, p::Real) = Minkowski(p)(a, b)
 
 # Weighted Minkowski
-@inline eval_op(dist::WeightedMinkowski, ai, bi, wi) = abs(ai - bi)^dist.p * wi
-@inline eval_end(dist::WeightedMinkowski, s) = s^(1 / dist.p)
+eval_op(dist::WeightedMinkowski, ai, bi, wi) = abs(ai - bi)^dist.p * wi
+eval_end(dist::WeightedMinkowski, s) = s^(1 / dist.p)
 wminkowski(a, b, w, p::Real) = WeightedMinkowski(w, p)(a, b)
 
 # Hamming
 result_type(::Hamming, ::Type, ::Type) = Int # fallback for Hamming
 eval_start(d::Hamming, a, b) = 0
-@inline eval_op(::Hamming, ai, bi) = ai != bi ? 1 : 0
+eval_op(::Hamming, ai, bi) = ai != bi ? 1 : 0
 const hamming = Hamming()
 
 # WeightedHamming
-@inline eval_op(::WeightedHamming, ai, bi, wi) = ai != bi ? wi : zero(eltype(wi))
+eval_op(::WeightedHamming, ai, bi, wi) = ai != bi ? wi : zero(eltype(wi))
 whamming(a, b, w) = WeightedHamming(w)(a, b)
 
 # Cosine dist
-@inline eval_start(dist::CosineDist, a, b) =
+eval_start(dist::CosineDist, a, b) =
     zero.(typeof.(eval_op(dist, oneunit(_eltype(a)), oneunit(_eltype(b)))))
-@inline eval_op(::CosineDist, ai, bi) = ai * bi, ai * ai, bi * bi
-@inline function eval_reduce(::CosineDist, s1, s2)
+eval_op(::CosineDist, ai, bi) = ai * bi, ai * ai, bi * bi
+function eval_reduce(::CosineDist, s1, s2)
     a1, b1, c1 = s1
     a2, b2, c2 = s2
     return a1 + a2, b1 + b2, c1 + c2
@@ -418,16 +418,16 @@ _centralize(x) = x .- mean(x)
 const corr_dist = CorrDist()
 
 # ChiSqDist
-@inline eval_op(::ChiSqDist, ai, bi) = (d = abs2(ai - bi) / (ai + bi); ifelse(ai != bi, d, zero(d)))
+eval_op(::ChiSqDist, ai, bi) = (d = abs2(ai - bi) / (ai + bi); ifelse(ai != bi, d, zero(d)))
 const chisq_dist = ChiSqDist()
 
 # KLDivergence
-@inline eval_op(dist::KLDivergence, ai, bi) =
+eval_op(dist::KLDivergence, ai, bi) =
     ai > 0 ? ai * log(ai / bi) : zero(eval_op(dist, oneunit(ai), bi))
 const kl_divergence = KLDivergence()
 
 # GenKLDivergence
-@inline eval_op(dist::GenKLDivergence, ai, bi) =
+eval_op(dist::GenKLDivergence, ai, bi) =
     ai > 0 ? ai * log(ai / bi) - ai + bi : oftype(eval_op(dist, oneunit(ai), bi), bi)
 const gkl_divergence = GenKLDivergence()
 
@@ -437,7 +437,7 @@ Base.@propagate_inbounds function eval_start(::RenyiDivergence, a, b)
     zero(T), zero(T), T(sum(a)), T(sum(b))
 end
 
-@inline function eval_op(dist::RenyiDivergence, ai::T, bi::T) where {T <: Real}
+function eval_op(dist::RenyiDivergence, ai::T, bi::T) where {T <: Real}
     if ai == zero(T)
         return zero(T), zero(T), zero(T), zero(T)
     elseif dist.is_normal
@@ -451,7 +451,7 @@ end
     end
 end
 
-@inline function eval_reduce(dist::RenyiDivergence,
+function eval_reduce(dist::RenyiDivergence,
                                                s1::Tuple{T,T,T,T},
                                                s2::Tuple{T,T,T,T}) where {T <: Real}
     if dist.is_inf
@@ -487,7 +487,7 @@ end
 
 # JSDivergence
 
-@inline function eval_op(::JSDivergence, ai::T, bi::T) where {T}
+function eval_op(::JSDivergence, ai::T, bi::T) where {T}
     u = (ai + bi) / 2
     ta = ai > 0 ? ai * log(ai) / 2 : zero(log(one(T)))
     tb = bi > 0 ? bi * log(bi) / 2 : zero(log(one(T)))
@@ -505,7 +505,7 @@ Base.@propagate_inbounds function eval_start(::SpanNormDist, a, b)
     return d, d
 end
 eval_op(::SpanNormDist, ai, bi)  = ai - bi
-@inline function eval_reduce(::SpanNormDist, s1, s2)
+function eval_reduce(::SpanNormDist, s1, s2)
     min_d, max_d = s1
     if s2 > max_d
         max_d = s2
@@ -523,18 +523,18 @@ const spannorm_dist = SpanNormDist()
 
 eval_start(dist::Jaccard, a, b) =
     zero.(typeof.(eval_op(dist, oneunit(_eltype(a)), oneunit(_eltype(b)))))
-@inline function eval_op(::Jaccard, s1, s2)
+function eval_op(::Jaccard, s1, s2)
     abs_m = abs(s1 - s2)
     abs_p = abs(s1 + s2)
     abs_p - abs_m, abs_p + abs_m
 end
-@inline function eval_reduce(::Jaccard, s1, s2)
-    @inbounds a = s1[1] + s2[1]
-    @inbounds b = s1[2] + s2[2]
+function eval_reduce(::Jaccard, s1, s2)
+    a = s1[1] + s2[1]
+    b = s1[2] + s2[2]
     a, b
 end
-@inline function eval_end(::Jaccard, a)
-    @inbounds v = 1 - (a[1] / a[2])
+function eval_end(::Jaccard, a)
+    v = 1 - (a[1] / a[2])
     return v
 end
 const jaccard = Jaccard()
@@ -543,34 +543,34 @@ const jaccard = Jaccard()
 
 eval_start(dist::BrayCurtis, a, b) =
     zero.(typeof.(eval_op(dist, oneunit(_eltype(a)), oneunit(_eltype(b)))))
-@inline function eval_op(::BrayCurtis, s1, s2)
+function eval_op(::BrayCurtis, s1, s2)
     abs_m = abs(s1 - s2)
     abs_p = abs(s1 + s2)
     abs_m, abs_p
 end
-@inline function eval_reduce(::BrayCurtis, s1, s2)
-    @inbounds a = s1[1] + s2[1]
-    @inbounds b = s1[2] + s2[2]
+function eval_reduce(::BrayCurtis, s1, s2)
+    a = s1[1] + s2[1]
+    b = s1[2] + s2[2]
     a, b
 end
-@inline function eval_end(::BrayCurtis, a)
-    @inbounds v = a[1] / a[2]
+function eval_end(::BrayCurtis, a)
+    v = a[1] / a[2]
     return v
 end
 const braycurtis = BrayCurtis()
 
 # Tanimoto
 
-@inline eval_start(::RogersTanimoto, _, _) = 0, 0, 0, 0
-@inline function eval_op(::RogersTanimoto, s1, s2)
+eval_start(::RogersTanimoto, _, _) = 0, 0, 0, 0
+function eval_op(::RogersTanimoto, s1, s2)
     tt = s1 && s2
     tf = s1 && !s2
     ft = !s1 && s2
     ff = !s1 && !s2
     tt, tf, ft, ff
 end
-@inline function eval_reduce(::RogersTanimoto, s1, s2)
-    @inbounds begin
+function eval_reduce(::RogersTanimoto, s1, s2)
+    begin
         a = s1[1] + s2[1]
         b = s1[2] + s2[2]
         c = s1[3] + s2[3]
@@ -578,9 +578,9 @@ end
     end
     a, b, c, d
 end
-@inline function eval_end(::RogersTanimoto, a)
-    @inbounds numerator = 2(a[2] + a[3])
-    @inbounds denominator = a[1] + a[4] + 2(a[2] + a[3])
+function eval_end(::RogersTanimoto, a)
+    numerator = 2(a[2] + a[3])
+    denominator = a[1] + a[4] + 2(a[2] + a[3])
     numerator / denominator
 end
 const rogerstanimoto = RogersTanimoto()
@@ -620,11 +620,11 @@ function _pairwise!(r::AbstractMatrix, dist::Union{SqEuclidean,Euclidean},
     sa2 = sum(abs2, a, dims=1)
     sb2 = sum(abs2, b, dims=1)
     z² = zero(real(eltype(R)))
-    @inbounds if dist.thresh <= 0
+    if dist.thresh <= 0
         # If there's no chance of triggering the threshold, we can use @simd
         for j = 1:nb
             sb = sb2[j]
-            @simd for i = 1:na
+            for i = 1:na
                 r[i, j] = eval_end(dist, (max(sa2[i] + sb - 2real(R[i, j]), z²)))
             end
         end
@@ -660,14 +660,14 @@ function _pairwise!(r::AbstractMatrix, dist::Union{SqEuclidean,Euclidean}, a::Ab
     sa2 = sum(abs2, a, dims=1)
     safe = dist.thresh <= 0
     z² = zero(real(eltype(R)))
-    @inbounds for j = 1:n
+    for j = 1:n
         for i = 1:(j - 1)
             r[i, j] = r[j, i]
         end
         r[j, j] = zero(eltype(r))
         sa2j = sa2[j]
         if safe
-            @simd for i = (j + 1):n
+            for i = (j + 1):n
                 r[i, j] = eval_end(dist, (max(sa2[i] + sa2j - 2real(R[i, j]), z²)))
             end
         else
@@ -701,8 +701,8 @@ function _pairwise!(r::AbstractMatrix, dist::Union{WeightedSqEuclidean,WeightedE
     R = inplace ? mul!(r, a', w .* b) : a'*Diagonal(w)*b
     z² = zero(real(eltype(R)))
     for j = 1:nb
-        @simd for i = 1:na
-            @inbounds r[i, j] = eval_end(dist, max(sa2[i] + sb2[j] - 2real(R[i, j]), z²))
+        for i = 1:na
+            r[i, j] = eval_end(dist, max(sa2[i] + sb2[j] - 2real(R[i, j]), z²))
         end
     end
     r
@@ -719,12 +719,12 @@ function _pairwise!(r::AbstractMatrix, dist::Union{WeightedSqEuclidean,WeightedE
     R = inplace ? mul!(r, a', w .* a) : a'*Diagonal(w)*a
     z² = zero(real(eltype(R)))
 
-    @inbounds for j = 1:n
+    for j = 1:n
         for i = 1:(j - 1)
             r[i, j] = r[j, i]
         end
         r[j, j] = zero(eltype(r))
-        @simd for i = (j + 1):n
+        for i = (j + 1):n
             r[i, j] = eval_end(dist, max(sa2[i] + sa2[j] - 2real(R[i, j]), z²))
         end
     end
@@ -736,8 +736,8 @@ function _pairwise!(r::AbstractMatrix, dist::MeanSqDeviation, a::AbstractMatrix,
     _pairwise!(r, SqEuclidean(), a, b)
     # TODO: Replace by rdiv!(r, size(a, 1)) once julia compat ≥v1.2
     s = size(a, 1)
-    @simd for I in eachindex(r)
-        @inbounds r[I] /= s
+    for I in eachindex(r)
+        r[I] /= s
     end
     return r
 end
@@ -756,8 +756,8 @@ function _pairwise!(r::AbstractMatrix, dist::MeanSqDeviation, a::AbstractMatrix)
     _pairwise!(r, SqEuclidean(), a)
     # TODO: Replace by rdiv!(r, size(a, 1)) once julia compat ≥v1.2
     s = size(a, 1)
-    @simd for I in eachindex(r)
-        @inbounds r[I] /= s
+    for I in eachindex(r)
+        r[I] /= s
     end
     return r
 end
@@ -782,8 +782,8 @@ function _pairwise!(r::AbstractMatrix, ::CosineDist, a::AbstractMatrix, b::Abstr
     ra = norm_percol(a)
     rb = norm_percol(b)
     for j = 1:nb
-        @simd for i = 1:na
-            @inbounds r[i, j] = max(1 - R[i, j] / (ra[i] * rb[j]), 0)
+        for i = 1:na
+            r[i, j] = max(1 - R[i, j] / (ra[i] * rb[j]), 0)
         end
     end
     r
@@ -794,12 +794,12 @@ function _pairwise!(r::AbstractMatrix, ::CosineDist, a::AbstractMatrix)
     inplace = promote_type(eltype(r), typeof(oneunit(eltype(a))'oneunit(eltype(a)))) === eltype(r)
     R = inplace ? mul!(r, a', a) : a'a
     ra = norm_percol(a)
-    @inbounds for j = 1:n
+    for j = 1:n
         for i = 1:(j - 1)
             r[i, j] = r[j, i]
         end
         r[j, j] = zero(eltype(r))
-        @simd for i = j + 1:n
+        for i = j + 1:n
             r[i, j] = max(1 - R[i, j] / (ra[i] * ra[j]), 0)
         end
     end

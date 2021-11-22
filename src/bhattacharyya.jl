@@ -19,7 +19,7 @@ function bhattacharyya_coeff(a, b)
     return sqab / sqrt(asum * bsum)
 end
 
-@inline function _bhattacharyya_coeff(a, b)
+function _bhattacharyya_coeff(a, b)
     Ta = _eltype(a)
     Tb = _eltype(b)
     T = typeof(sqrt(zero(promote_type(Ta, Tb))))
@@ -34,15 +34,15 @@ end
     end
     return sqab, asum, bsum
 end
-@inline function _bhattacharyya_coeff(a::AbstractVector{Ta}, b::AbstractVector{Tb}) where {Ta<:Number,Tb<:Number}
+function _bhattacharyya_coeff(a::AbstractVector{Ta}, b::AbstractVector{Tb}) where {Ta<:Number,Tb<:Number}
     T = typeof(sqrt(oneunit(Ta)*oneunit(Tb)))
     sqab = zero(T)
     asum = zero(Ta)
     bsum = zero(Tb)
 
-    @simd for i in eachindex(a, b)
-        @inbounds ai = a[i]
-        @inbounds bi = b[i]
+    for i in eachindex(a, b)
+        ai = a[i]
+        bi = b[i]
         sqab += sqrt(ai * bi)
         asum += ai
         bsum += bi

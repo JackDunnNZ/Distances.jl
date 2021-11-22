@@ -133,8 +133,8 @@ function _pairwise!(r::AbstractMatrix, dist::Union{SqMahalanobis,Mahalanobis}, a
     mul!(r, a', Qb)
 
     for j = 1:nb
-        @simd for i = 1:na
-            @inbounds r[i, j] = eval_end(dist, max(sa2[i] + sb2[j] - 2 * r[i, j], 0))
+        for i = 1:na
+            r[i, j] = eval_end(dist, max(sa2[i] + sb2[j] - 2 * r[i, j], 0))
         end
     end
     r
@@ -150,11 +150,11 @@ function _pairwise!(r::AbstractMatrix, dist::Union{SqMahalanobis,Mahalanobis}, a
 
     for j = 1:n
         for i = 1:(j - 1)
-            @inbounds r[i, j] = r[j, i]
+            r[i, j] = r[j, i]
         end
         r[j, j] = 0
         for i = (j + 1):n
-            @inbounds r[i, j] = eval_end(dist, max(sa2[i] + sa2[j] - 2 * r[i, j], 0))
+            r[i, j] = eval_end(dist, max(sa2[i] + sa2[j] - 2 * r[i, j], 0))
         end
     end
     r

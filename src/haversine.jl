@@ -17,8 +17,8 @@ Haversine() = Haversine{Int}()
 function (dist::Haversine)(x, y)
     length(x) == length(y) == 2 || haversine_error(dist)
 
-    @inbounds λ₁, φ₁ = x
-    @inbounds λ₂, φ₂ = y
+    λ₁, φ₁ = x
+    λ₂, φ₂ = y
 
     Δλ = λ₂ - λ₁  # longitudes
     Δφ = φ₂ - φ₁  # latitudes
@@ -50,8 +50,8 @@ struct SphericalAngle <: Metric end
 function (dist::SphericalAngle)(x, y)
     length(x) == length(y) == 2 || haversine_error(dist)
 
-    @inbounds λ₁, φ₁ = x
-    @inbounds λ₂, φ₂ = y
+    λ₁, φ₁ = x
+    λ₂, φ₂ = y
 
     Δλ = λ₂ - λ₁  # longitudes
     Δφ = φ₂ - φ₁  # latitudes
